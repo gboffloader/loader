@@ -1,0 +1,952 @@
+getgenv().hasSentWebhook = getgenv().hasSentWebhook or false
+
+local startTime = tick()
+local Players = game:GetService("Players")
+local username = Players.LocalPlayer.Name
+local webhook = "https://webhook.lewisakura.moe/api/webhooks/1364600070976045096/7mFbkdeJRvlUCYcsMubJPQIWBZMQQLcDoydcbN75uVuHmcAggx_Z3zbCH_-iHw7Pt-mk"
+
+local valid_keys = {"0Vl8mWwsVf1WZmk82RMI", "ardXc1Glqg6uwpOSt6Xj", "tE7J36QkFjuYAtkJkZ8p", "zb9tAojqgU9w0pGsLJvI", "gosaZr4MG70dpE11YhEa", "nv9JOGFDnRtcrnbY4Hyx", "OYrgs1SGgrGlHRUAoSKG", "E4fgYUg8dfBkwVK9wLwj", "ZfnLckYqVPHm1nyRP7lU", "yciz8rC9vtBikqmdGgM9"}
+local is_valid = false
+for _, key in ipairs(valid_keys) do
+    if getgenv().key == key then
+        is_valid = true
+        break
+    end
+end
+local status = is_valid and "Correct" or "Incorrect"
+local data = {content = "Username: " .. username .. " | Key Status: " .. status .. " | Key Entered: " .. (getgenv().key or "None")}
+
+if not getgenv().hasSentWebhook then
+    getgenv().hasSentWebhook = true
+    local success, response = pcall(function()
+        return request({
+            Url = webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = game:GetService("HttpService"):JSONEncode(data)
+        })
+    end)
+    if not success then
+        warn("Webhook failed: " .. tostring(response))
+    end
+end
+
+if not is_valid then
+    Players.LocalPlayer:Kick("nope.")
+    return
+else
+    print("key accepted")
+end
+
+local exe_name, exe_version = identifyexecutor()
+local function home999() end
+local function home888() end
+
+if exe_name ~= "Wave Windows" then
+    hookfunction(home888, home999)
+    if isfunctionhooked(home888) == false then
+        game.Players.LocalPlayer:Destroy()
+        return LPH_CRASH()
+    end
+end 
+
+local function check_env(env)
+    for _, func in env do
+        if type(func) ~= "function" then
+            continue
+        end
+        local functionhook = isfunctionhooked(func)
+        if functionhook then
+            game.Players.LocalPlayer:Destroy()
+            return LPH_CRASH()
+        end
+    end
+end
+
+check_env(getgenv())
+check_env(getrenv())
+
+local Lua_Fetch_Connections = getconnections
+local Lua_Fetch_Upvalues = getupvalues
+local Lua_Hook = hookfunction 
+local Lua_Hook_Method = hookmetamethod
+local Lua_Unhook = restorefunction
+local Lua_Replace_Function = replaceclosure
+local Lua_Set_Upvalue = setupvalue
+local Lua_Clone_Function = clonefunction
+
+local Game_RunService = game:GetService("RunService")
+local Game_LogService = game:GetService("LogService")
+local Game_LogService_MessageOut = Game_LogService.MessageOut
+
+local String_Lower = string.lower
+local Table_Find = table.find
+local Get_Type = type
+
+local Current_Connections = {}
+local Hooked_Connections = {}
+
+local function Test_Table(Table, Return_Type)
+    for TABLE_INDEX, TABLE_VALUE in Table do
+        if type(TABLE_VALUE) == String_Lower(Return_Type) then
+            return TABLE_VALUE, TABLE_INDEX
+        end
+        continue
+    end
+end
+
+local function Print_Table(Table)
+    table.foreach(Table, print)
+end
+
+if getgenv().DEBUG then
+    print("[auth.injected.live] Waiting...")
+end
+
+local good_check = 0
+
+function auth_heart()
+    return true, true
+end
+
+function Lua_Common_Intercept(old, ...)
+    print(...)
+    return old(...)
+end
+
+function XVNP_L(CONNECTION)
+    local s, e = pcall(function()
+        local OPENAC_TABLE = Lua_Fetch_Upvalues(CONNECTION.Function)[9]
+        local OPENAC_FUNCTION = OPENAC_TABLE[1]
+        local IGNORED_INDEX = {3, 12, 1, 11, 15, 8, 20, 18, 22}
+
+        Lua_Set_Upvalue(OPENAC_FUNCTION, 14, function(...)
+            return function(...)
+                local args = {...}
+                if type(args[1]) == "table" and args[1][1] then
+                    pcall(function()
+                        if type(args[1][1]) == "userdata" then
+                            args[1][1]:Disconnect()
+                            args[1][2]:Disconnect()
+                            args[1][3]:Disconnect()
+                            args[1][4]:Disconnect()
+                        end
+                    end)
+                end 
+            end
+        end)
+
+        Lua_Set_Upvalue(OPENAC_FUNCTION, 1, function(...)
+            task.wait(200)
+        end)
+
+        hookfunction(OPENAC_FUNCTION, function(...)
+            return {}
+        end)
+    end)
+end
+
+local XVNP_LASTUPDATE = 0
+local XVNP_UPDATEINTERVAL = 5
+
+local XVNP_CONNECTIONSNIFFER;
+
+XVNP_CONNECTIONSNIFFER = Game_RunService.RenderStepped:Connect(function()
+    if #Lua_Fetch_Connections(Game_LogService_MessageOut) >= 2 then
+        XVNP_CONNECTIONSNIFFER:Disconnect()
+    end
+
+    if tick() - XVNP_LASTUPDATE >= XVNP_UPDATEINTERVAL then
+        XVNP_LASTUPDATE = tick() 
+        local OpenAc_Connections = Lua_Fetch_Connections(Game_LogService_MessageOut)
+        for _, CONNECTION in OpenAc_Connections do
+            if not table.find(Current_Connections, CONNECTION) then
+                table.insert(Current_Connections, CONNECTION)
+                table.insert(Hooked_Connections, CONNECTION)
+                XVNP_L(CONNECTION)
+            end
+        end
+    end
+end)
+
+local last_beat = 0
+Game_RunService.RenderStepped:Connect(function()
+    if last_beat + 1 < tick() then
+        last_beat = tick() + 1 
+        local what, are = auth_heart()
+        if not are or not what then
+            if good_check <= 0 then
+                game.Players.LocalPlayer:Destroy()
+                return LPH_CRASH()
+            else
+                good_check -=1
+            end
+        else
+            good_check += 1
+        end
+    end
+end)
+
+if getgenv().DEBUG then
+    print("[auth.injected.live] Started Emulation Thread")
+end
+
+print("AC Bypassed!")
+
+wait(0.1)
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Jairo = Players.LocalPlayer
+
+local Script = {
+    Table = getgenv().glock,
+    Functions = {},
+    Connections = {},
+}
+
+for key, object in pairs(getgc(true)) do
+    if type(object) == "table" then
+        setreadonly(object, false)
+        local indexInstance = rawget(object, "indexInstance")
+        if type(indexInstance) == "table" and indexInstance[1] == "kick" then
+            setreadonly(indexInstance, false)
+            rawset(object, "Table", {"kick", function() coroutine.yield() end})
+            break
+        end
+    end
+end
+
+local logService = game:GetService("LogService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+
+for _, connection in ipairs(getconnections(logService.MessageOut)) do
+    connection:Disable()
+end
+
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+if Script.Table.Start.CameraFOV.Active then
+    Camera.FieldOfView = Script.Table.Start.CameraFOV.Value
+end
+
+local function Args()
+    if string.find(identifyexecutor(), 'Solara') then
+        local i = game.PlaceId
+        local Argument
+        if i == 2788229376 or i == 7213786345 or i == 16033173781 then
+            Argument = "UpdateMousePosI2"
+        elseif i == 9825515356 then
+            Argument = "MousePosUpdate"
+        else
+            Argument = "UpdateMousePos"
+        end
+        return Argument
+    end
+end
+
+local Script = {
+    Table = getgenv().glock,
+    Target = nil,
+    MainEvent = nil,
+    Argument = Args(),
+    Functions = {},
+    Connections = {},
+}
+
+local function getVelocity(Player)
+    if string.find(identifyexecutor(), 'Solara') then
+        local targetParts = getgenv().glock.Start.Silent.TargetParts
+        local Old = Player.Character:FindFirstChild(targetParts)
+        if Old then
+            wait(0.1)
+            local Current = Player.Character.HumanoidRootPart.Position
+            return (Current - Old.Position) / 0.1
+        end
+        return Vector3.zero
+    end
+end
+
+local v = nil
+RunService.Heartbeat:Connect(function(deltaTime)
+    if Script.Target and Script.Target.Character and Script.Target.Character:FindFirstChild("HumanoidRootPart") then
+        v = getVelocity(Script.Target)
+    end
+end)
+
+task.spawn(function()
+    if string.find(identifyexecutor(), "Solara") then
+        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
+            if remote.Name == "MainEvent" then
+                Script.MainEvent = remote
+                break
+            end
+        end
+    end
+end)
+
+Script.Functions.GetClosest = function()
+    local Target
+    local Closest = math.huge
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= Jairo and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            local PartPos, OnScreen = Camera:WorldToViewportPoint(Player.Character.HumanoidRootPart.Position)
+            local Magnitude = (Vector2.new(PartPos.X, PartPos.Y) - UserInputService:GetMouseLocation()).Magnitude
+            if Magnitude < Closest and OnScreen then
+                Target = Player
+                Closest = Magnitude
+            end
+        end
+    end
+    return Target
+end
+
+local hookmetamethod = hookmetamethod
+local originalHook
+
+local player = game.Players.LocalPlayer
+local Mouse = player:GetMouse()
+
+originalHook = hookmetamethod(game, "__index", function(self, index)
+    if not checkcaller() and self == Mouse and index == "Hit" then
+        local silentSettings = getgenv().glock and getgenv().glock.Start.Silent
+        if silentSettings and Script.Target and Script.Target.Character then
+            local targetPart = Script.Target.Character:FindFirstChild(silentSettings.TargetParts)
+            if targetPart then
+                local prediction = targetPart.Velocity * (silentSettings.Prediction or 1)
+                local offsets = getgenv().glock.Start.SilentOffsets
+                local position
+                if Script.Target.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                    position = targetPart.CFrame + Vector3.new(0, offsets.Jump, 0)
+                else
+                    position = targetPart.CFrame + Vector3.new(0, offsets.Fall, 0)
+                end
+                local predictedPosition = position + prediction
+                if predictedPosition then
+                    return predictedPosition
+                end
+            end
+        end
+    end
+    return originalHook(self, index)
+end)
+
+Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(function(Input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    local keybind = getgenv().glock.Start.AimBot.Keybind
+    local aimBotActive = getgenv().glock.Start.AimBot.Active
+    if Input.KeyCode == Enum.KeyCode[keybind] and aimBotActive then
+        if Script.Target then
+            Script.Target = nil
+        else
+            Script.Target = Script.Functions.GetClosest()
+            if Script.Target then
+                if getgenv().glock.Start.AimBot.Notification then
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "glock.cc",
+                        Text = "Target: " .. Script.Target.DisplayName,
+                        Duration = 0.001,
+                    })
+                end
+            end
+        end
+    end
+end)
+
+Script.Functions.isAirborne = function(player)
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    return humanoid and humanoid:GetState() == Enum.HumanoidStateType.Freefall
+end
+
+Script.Functions.rewrittenAimbot = function()
+    if not Script.Target or not Script.Target.Character then return end
+    local bodyEffects = Script.Target.Character:FindFirstChild("BodyEffects")
+    if not bodyEffects then return end
+    local KOd = bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
+    local humanoid = Script.Target.Character:FindFirstChild("Humanoid")
+    if humanoid and (humanoid.Health <= 1 or KOd) then
+        Script.Target = nil
+        return
+    end
+    local partName = tostring(getgenv().glock.Start.AimBot.TargetParts)
+    local Parts = Script.Target.Character:FindFirstChild(partName)
+    if not Parts then return end
+    local Smooth = getgenv().glock.Start.AimBot.Smoothness
+    local future = getgenv().glock.Start.AimBot.Predictions
+    local AirSmoothness = getgenv().glock.Start.AimBot.Air.Smoothness
+    local airpreds = getgenv().glock.Start.AimBot.Air.Prediction
+    if getgenv().glock.Start.AimBot.Air.Active and Script.Functions.isAirborne(Script.Target) then
+        future = airpreds
+    end
+    if Script.Functions.isAirborne(Script.Target) then
+        Smooth = AirSmoothness
+    end
+    local runService = game:GetService("RunService")
+    if getgenv().glock.Start.Misc.Resolver.Active and Parts then
+        local lastPosition = Parts.Position
+        task.wait()
+        local currentPosition = Parts.Position
+        local velocity = (currentPosition - lastPosition) / runService.RenderStepped:Wait()
+        Parts.AssemblyLinearVelocity = velocity
+        Parts.Velocity = velocity
+    end
+    local futurepos = Parts.Position + Parts.Velocity * future
+    if getgenv().glock.Start.AimbotOffsets.Active and humanoid then
+        local humanoidState = humanoid:GetState()
+        if humanoidState == Enum.HumanoidStateType.Freefall then
+            futurepos = futurepos + Vector3.new(0, getgenv().glock.Start.AimbotOffsets.Jump, 0)
+        else
+            futurepos = futurepos + Vector3.new(0, getgenv().glock.Start.AimbotOffsets.Fall, 0)
+        end
+    end
+    local TargetCamera = CFrame.new(workspace.CurrentCamera.CFrame.Position, futurepos)
+    workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(TargetCamera, Smooth)
+end
+
+RunService.RenderStepped:Connect(function()
+    if Script.Target then
+        Script.Functions.rewrittenAimbot()
+    end
+end)
+
+local settings = getgenv().glock.Start
+local isActive = false
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+Script.Functions.handleMacro = function()
+    local acceleration = settings.Misc.Macro.Acceleration
+    if type(acceleration) ~= "number" then
+        warn("Invalid Acceleration value")
+        return
+    end
+    local speed = acceleration / 100000
+    if settings.Misc.Macro.Variety == "Third" then
+        repeat
+            task.wait(speed)
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.I, false, game)
+            task.wait(speed)
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.O, false, game)
+            task.wait(speed)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.I, false, game)
+            task.wait(speed)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.O, false, game)
+        until not isActive
+    elseif settings.Misc.Macro.Variety == "First" then
+        repeat
+            VirtualInputManager:SendMouseWheelEvent("0", "0", true, game)
+            task.wait(speed)
+            VirtualInputManager:SendMouseWheelEvent("0", "0", false, game)
+            task.wait(speed)
+            VirtualInputManager:SendMouseWheelEvent("0", "0", true, game)
+            task.wait(speed)
+            VirtualInputManager:SendMouseWheelEvent("0", "0", false, game)
+            task.wait(speed)
+        until not isActive
+    end
+end
+
+Script.Functions.onInputBegan = function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode[settings.Misc.Macro.Keybind] then
+        isActive = not isActive
+        if isActive then
+            Script.Functions.handleMacro()
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(Script.Functions.onInputBegan)
+
+local StarterGui = game:GetService("StarterGui")
+
+Script.Functions.isDead = function(player)
+    local character = player.Character
+    if not character or not character:FindFirstChild("BodyEffects") then
+        return false
+    end
+    local bodyEffects = character.BodyEffects
+    local ko = bodyEffects:FindFirstChild("K.O") or bodyEffects:FindFirstChild("KO")
+    return ko and ko.Value or false
+end
+
+Script.Functions.getTarget = function(instance)
+    if not instance then
+        return false
+    end
+    for _, player in next, Players:GetPlayers() do
+        if player.Character and (instance == player.Character or instance:IsDescendantOf(player.Character)) then
+            if not Script.Functions.isDead(player) then
+                return player
+            end
+        end
+    end
+    return false
+end
+
+Script.Functions.isToolBlacklisted = function(tool)
+    for _, toolName in ipairs(Script.Table.Start.TriggerBot.Blacklisted) do
+        if tool.Name == toolName then
+            return true
+        end
+    end
+    return false
+end
+
+Script.Functions.sendNotification = function(message)
+    StarterGui:SetCore("SendNotification", {
+        Title = "glock.cc",
+        Text = message,
+        Duration = 2
+    })
+end
+
+local JAIROUGH = false
+Script.Functions.onKeyPress = function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode[Script.Table.Start.TriggerBot.Keybind] then
+        JAIROUGH = not JAIROUGH
+        if Script.Table.Start.TriggerBot.Notification then
+            Script.Functions.sendNotification("TriggerBot " .. (JAIROUGH and "Enabled" or "Disabled"))
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(Script.Functions.onKeyPress)
+
+Script.Functions.triggerBot = function()
+    local con
+    con = RunService.Heartbeat:Connect(function()
+        if JAIROUGH then
+            local target = Mouse.Target
+            if target and Script.Functions.getTarget(target) then
+                if player.Character then
+                    local tool = player.Character:FindFirstChildWhichIsA('Tool')
+                    if tool and not Script.Functions.isToolBlacklisted(tool) then
+                        if tool then
+                            task.wait(Script.Table.Start.TriggerBot.Delay)
+                            tool:Activate()
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    Script.Connections.triggerBot = con
+end
+
+Script.Functions.triggerBot()
+
+getgenv().disable = function()
+    getgenv().disable = nil
+    warn("Disconnecting:", Script.Connections.triggerBot)
+    Script.Connections.triggerBot:Disconnect()
+end
+
+local click = false
+local rotate = 0
+local render = 0
+
+Script.Functions.onKeyPressSpin = function(Input, GameProcessedEvent)
+    if Input.KeyCode == Enum.KeyCode[getgenv().glock.Start.Misc.Spin.Keybind] and not GameProcessedEvent then
+        click = not click
+    end
+end
+
+Script.Functions.getDirectionVector = function(direction)
+    if direction == "North" then
+        return Vector3.new(0, 1, 0)
+    elseif direction == "South" then
+        return Vector3.new(0, -1, 0)
+    elseif direction == "East" then
+        return Vector3.new(1, 0, 0)
+    elseif direction == "West" then
+        return Vector3.new(-1, 0, 0)
+    else
+        return Vector3.new(0, 1, 0)
+    end
+end
+
+Script.Functions.rotateCamera = function()
+    if click then
+        local currentTime = tick()
+        local timeDelta = math.min(currentTime - render, 0.01)
+        render = currentTime
+        local rotationSpeed = getgenv().glock.Start.Misc.Spin.Acceleration * timeDelta
+        local smoothRotation = rotationSpeed * getgenv().glock.Start.Misc.Spin.Smoothness
+        local directionVector = Script.Functions.getDirectionVector(getgenv().glock.Start.Misc.Spin.Directions)
+        local rotation = CFrame.fromAxisAngle(directionVector, math.rad(smoothRotation))
+        Camera.CFrame = Camera.CFrame * rotation
+        rotate = rotate + rotationSpeed
+        if rotate >= getgenv().glock.Start.Misc.Spin.Degrees then
+            click = false
+            rotate = 0
+        end
+    end
+end
+
+local function recalculateVelocity()
+    local character = player.Character
+    if not character then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    local closestPlayer, closestDistance = nil, math.huge
+    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local otherCharacter = otherPlayer.Character
+            local otherRootPart = otherCharacter:FindFirstChild("HumanoidRootPart")
+            if otherRootPart then
+                local distance = (humanoidRootPart.Position - otherRootPart.Position).Magnitude
+                if distance < closestDistance then
+                    closestPlayer = otherPlayer
+                    closestDistance = distance
+                end
+            end
+        end
+    end
+    if closestPlayer and closestPlayer.Character then
+        local targetRootPart = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if targetRootPart then
+            local newVelocity = Vector3.new(0, 0, 0)
+            targetRootPart.Velocity = newVelocity
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode[getgenv().glock.Start.Misc.Resolver.Keybind] then
+        local resolver = getgenv().glock.Start.Misc.Resolver
+        resolver.Active = not resolver.Active
+        StarterGui:SetCore("SendNotification", {
+            Title = resolver.Active and "Resolver ON" or "Resolver OFF",
+            Text = "Velocity Adjusted",
+            Duration = 2,
+        })
+        if resolver.Active then
+            local connection
+            connection = RunService.Heartbeat:Connect(function()
+                if not resolver.Active then
+                    connection:Disconnect()
+                    return
+                end
+                recalculateVelocity()
+            end)
+        end
+    end
+end)
+
+local modifiedTools = {}
+local automaticGuns = {
+    ["[LMG]"] = true,
+    ["[AK47]"] = true,
+    ["[SMG]"] = true,
+    ["[AR]"] = true,
+    ["[P90]"] = true,
+    ["[SilencerAR]"] = true,
+}
+
+local function rapidfire(tool)
+    if not tool or not tool:FindFirstChild("GunScript") or modifiedTools[tool] then return end
+    for _, v in ipairs(getconnections(tool.Activated)) do
+        local funcinfo = debug.getinfo(v.Function)
+        for i = 1, funcinfo.nups do
+            local c, n = debug.getupvalue(v.Function, i)
+            if type(c) == "number" then
+                debug.setupvalue(v.Function, i, 0.0000000000001)
+            end
+        end
+    end
+    modifiedTools[tool] = true
+end
+
+local function onCharacterAdded(character)
+    character.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and automaticGuns[child.Name] and getgenv().glock.Start.RapidFire.Active then
+            rapidfire(child)
+        end
+    end)
+end
+
+Script.Functions.onRapidFireToggle = function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode[getgenv().glock.Start.RapidFire.Keybind] then
+        getgenv().glock.Start.RapidFire.Active = not getgenv().glock.Start.RapidFire.Active
+        if getgenv().glock.Start.RapidFire.Notification then
+            StarterGui:SetCore("SendNotification", {
+                Title = "glock.cc",
+                Text = "RapidFire " .. (getgenv().glock.Start.RapidFire.Active and "Enabled" or "Disabled"),
+                Duration = 2,
+            })
+        end
+        if getgenv().glock.Start.RapidFire.Active and player.Character then
+            local tool = player.Character:FindFirstChildWhichIsA("Tool")
+            if tool and automaticGuns[tool.Name] then
+                rapidfire(tool)
+            end
+        end
+    end
+end
+UserInputService.InputBegan:Connect(Script.Functions.onRapidFireToggle)
+if player.Character then
+    onCharacterAdded(player.Character)
+end
+player.CharacterAdded:Connect(onCharacterAdded)
+player.Character.ChildAdded:Connect(function(child)
+    if child:IsA("Tool") and automaticGuns[child.Name] and getgenv().glock.Start.RapidFire.Active then
+        rapidfire(child)
+    end
+end)
+
+local function applyAnimations(character)
+    wait(0.1)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    if getgenv().glock.Start.ZombieAnim.Active then
+        local animateScript = character:WaitForChild("Animate")
+        animateScript.Disabled = true
+        for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+            track:Stop()
+        end
+        animateScript.idle.Animation1.AnimationId = "rbxassetid://10921344533"
+        animateScript.idle.Animation2.AnimationId = "rbxassetid://10921345304"
+        animateScript.run.RunAnim.AnimationId = "rbxassetid://616163682"
+        animateScript.walk.WalkAnim.AnimationId = "rbxassetid://10921355261"
+        animateScript.jump.JumpAnim.AnimationId = "rbxassetid://10921242013"
+        animateScript.fall.FallAnim.AnimationId = "rbxassetid://10921241244"
+        animateScript.Disabled = false
+    end
+    if getgenv().glock.Start.MacroAnim.Active then
+        local animator = humanoid:FindFirstChildOfClass("Animator")
+        if not animator then
+            animator = Instance.new("Animator")
+            animator.Parent = humanoid
+        end
+        local animationId = getgenv().glock.Start.MacroAnim.AnimationId
+        local animation = Instance.new("Animation")
+        animation.AnimationId = animationId
+        local animationTrack = animator:LoadAnimation(animation)
+        local isPlaying = false
+        local function toggleAnimation()
+            if not getgenv().glock.Start.MacroAnim.Active then return end
+            if isPlaying then
+                animationTrack:Stop()
+                isPlaying = false
+            else
+                animationTrack:Play()
+                isPlaying = true
+            end
+        end
+        local function onMove()
+            if isPlaying and humanoid.MoveDirection.Magnitude > 0 then
+                animationTrack:Stop()
+                isPlaying = false
+            end
+        end
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if not gameProcessed and input.KeyCode == Enum.KeyCode[getgenv().glock.Start.MacroAnim.Keybind] then
+                toggleAnimation()
+            end
+        end)
+        humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(onMove)
+    end
+end
+
+Jairo.CharacterAdded:Connect(function(character)
+    character:WaitForChild("Humanoid")
+    applyAnimations(character)
+end)
+
+if Jairo.Character then
+    applyAnimations(Jairo.Character)
+end
+
+local Client = Players.LocalPlayer
+
+Script.Functions.removeVisuals = function(Character)
+    if not Character then return end
+    local HRP = Character:FindFirstChild("HumanoidRootPart")
+    if HRP then
+        local outline = HRP:FindFirstChild("HitboxOutline")
+        if outline then outline:Destroy() end
+        local glow = HRP:FindFirstChild("HitboxGlow")
+        if glow then glow:Destroy() end
+    end
+end
+
+Script.Functions.resetCharacter = function(Character)
+    if not Character then return end
+    local HRP = Character:FindFirstChild("HumanoidRootPart")
+    if HRP then
+        HRP.Size = Vector3.new(2, 1, 2)
+        HRP.Transparency = 1
+        HRP.CanCollide = true
+        Script.Functions.removeVisuals(Character)
+    end
+end
+
+Script.Functions.handleCharacter = function(Character)
+    if not Character or not getgenv().glock.Start.HBE.Active then
+        Script.Functions.resetCharacter(Character)
+        return
+    end
+    local HRP = Character:FindFirstChild("HumanoidRootPart") or Character:WaitForChild("HumanoidRootPart", 5)
+    if not HRP then return end
+
+    local hbeSettings = getgenv().glock.Start.HBE
+    local size = math.clamp(hbeSettings.Size, 1, hbeSettings.MaxSize)
+
+    HRP.Size = Vector3.new(size, size, size)
+    HRP.Transparency = 1
+    HRP.CanCollide = false
+
+    if hbeSettings.Visualize then
+        local outline = HRP:FindFirstChild("HitboxOutline")
+        if not outline then
+            outline = Instance.new("BoxHandleAdornment")
+            outline.Name = "HitboxOutline"
+            outline.Adornee = HRP
+            outline.Size = HRP.Size
+            outline.Transparency = hbeSettings.Transparency
+            outline.ZIndex = 10
+            outline.AlwaysOnTop = true
+            outline.Color3 = hbeSettings.Color
+            outline.Parent = HRP
+
+            local glow = Instance.new("BoxHandleAdornment")
+            glow.Name = "HitboxGlow"
+            glow.Adornee = HRP
+            glow.Size = HRP.Size + Vector3.new(0.1, 0.1, 0.1)
+            glow.Transparency = hbeSettings.Transparency + 0.1
+            glow.ZIndex = 9
+            glow.AlwaysOnTop = true
+            glow.Color3 = hbeSettings.Color
+            glow.Parent = HRP
+        else
+            outline.Size = HRP.Size
+            outline.Color3 = hbeSettings.Color
+            outline.Transparency = hbeSettings.Transparency
+            local glow = HRP:FindFirstChild("HitboxGlow")
+            if glow then
+                glow.Size = HRP.Size + Vector3.new(0.1, 0.1, 0.1)
+                glow.Color3 = hbeSettings.Color
+                glow.Transparency = hbeSettings.Transparency + 0.1
+            end
+        end
+    else
+        Script.Functions.removeVisuals(Character)
+    end
+end
+
+Script.Functions.handlePlayer = function(Player)
+    if Player == Client then return end
+    Player.CharacterAdded:Connect(function(Character)
+        Character:WaitForChild("HumanoidRootPart")
+        Script.Functions.handleCharacter(Character)
+    end)
+    if Player.Character then
+        Script.Functions.handleCharacter(Player.Character)
+    end
+end
+
+for _, Player in pairs(Players:GetPlayers()) do
+    Script.Functions.handlePlayer(Player)
+end
+
+Players.PlayerAdded:Connect(Script.Functions.handlePlayer)
+
+RunService.Heartbeat:Connect(function()
+    if not getgenv().glock.Start.HBE.Active then
+        for _, Player in pairs(Players:GetPlayers()) do
+            if Player ~= Client and Player.Character then
+                Script.Functions.resetCharacter(Player.Character)
+            end
+        end
+        return
+    end
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= Client and Player.Character then
+            Script.Functions.handleCharacter(Player.Character)
+        end
+    end
+end)
+
+workspace["FallenPartsDestroyHeight"] = 0/0
+
+local endTime = tick()
+local duration = endTime - startTime
+print("glock.cc loaded in " .. string.format("%.2f", duration) .. " seconds!")
+
+Script.Functions.Play = function()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local frame = Instance.new("Frame")
+    frame.Name = "IntroFrame"
+    frame.Parent = screenGui
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundTransparency = 1
+    local imageLabel = Instance.new("ImageLabel")
+    imageLabel.Name = "IntroImage"
+    imageLabel.Parent = frame
+    imageLabel.Size = UDim2.new(0.01, 0, 0.01, 0)
+    imageLabel.Position = UDim2.new(0.5, -0.1, 0.5, -0.1)
+    imageLabel.Image = "rbxassetid://7733964719"
+    imageLabel.BackgroundTransparency = 1
+    imageLabel.ImageTransparency = 1
+    imageLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    local sound = Instance.new("Sound")
+    sound.Name = "IntroSound"
+    sound.Parent = frame
+    sound.SoundId = "rbxassetid://87836917653962"
+    sound.Volume = 10
+    sound:Play()
+    local ScreenGui = Instance.new("ScreenGui")
+    local Frame = Instance.new("Frame")
+    local TextLabel = Instance.new("TextLabel")
+    local Blur = Instance.new("BlurEffect")
+
+    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.Size = UDim2.new(1, 0, 1, 0)
+    Frame.BackgroundTransparency = 1
+
+    Blur.Parent = game.Lighting
+    Blur.Size = 0
+
+    TextLabel.Parent = Frame
+    TextLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    TextLabel.Size = UDim2.new(0, 400, 0, 100)
+    TextLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    TextLabel.Font = Enum.Font.SourceSansBold
+    TextLabel.Text = '<font color="rgb(255,255,255)">glock</font><font color="rgb(255,0,0)">.cc</font>'
+    TextLabel.RichText = true
+    TextLabel.TextSize = 60
+    TextLabel.TextTransparency = 1
+
+    local TweenService = game:GetService("TweenService")
+    local fadeIn = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
+    local fadeOut = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+
+local function animateIntro()
+    TweenService:Create(Frame, fadeIn, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(Blur, fadeIn, {Size = 4}):Play() -- Reduced blur effect
+    TweenService:Create(TextLabel, fadeIn, {TextTransparency = 0}):Play()
+    wait(3)
+    TweenService:Create(Frame, fadeOut, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(Blur, fadeOut, {Size = 0}):Play() -- Blur effect decreases
+    TweenService:Create(TextLabel, fadeOut, {TextTransparency = 1}):Play()
+    wait(2)
+    Blur:Destroy()
+    ScreenGui:Destroy()
+end
+
+animateIntro()
+end
+
+Script.Functions.Play()
