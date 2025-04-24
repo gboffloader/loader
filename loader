@@ -555,7 +555,7 @@ Script.Functions.onKeyPressSpin = function(Input, GameProcessedEvent)
 end
 
 Script.Functions.getDirectionVector = function(direction)
-    if direction == "North" then
+    if direction == "North " then
         return Vector3.new(0, 1, 0)
     elseif direction == "South" then
         return Vector3.new(0, -1, 0)
@@ -872,6 +872,19 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+RunService.RenderStepped:Connect(function()
+    if not getgenv().glock.Start.Movement.Enabled then return end
+
+    local localPlayer = game.Players.LocalPlayer
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = getgenv().glock.Start.Movement.WalkSpeed
+            humanoid.JumpPower = getgenv().glock.Start.Movement.JumpPower
+        end
+    end
+end)
+
 workspace["FallenPartsDestroyHeight"] = 0/0
 
 local endTime = tick()
@@ -933,20 +946,20 @@ Script.Functions.Play = function()
     local fadeIn = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
     local fadeOut = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 
-local function animateIntro()
-    TweenService:Create(Frame, fadeIn, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(Blur, fadeIn, {Size = 4}):Play() -- Reduced blur effect
-    TweenService:Create(TextLabel, fadeIn, {TextTransparency = 0}):Play()
-    wait(3)
-    TweenService:Create(Frame, fadeOut, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(Blur, fadeOut, {Size = 0}):Play() -- Blur effect decreases
-    TweenService:Create(TextLabel, fadeOut, {TextTransparency = 1}):Play()
-    wait(2)
-    Blur:Destroy()
-    ScreenGui:Destroy()
-end
+    local function animateIntro()
+        TweenService:Create(Frame, fadeIn, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(Blur, fadeIn, {Size = 4}):Play()
+        TweenService:Create(TextLabel, fadeIn, {TextTransparency = 0}):Play()
+        wait(3)
+        TweenService:Create(Frame, fadeOut, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(Blur, fadeOut, {Size = 0}):Play()
+        TweenService:Create(TextLabel, fadeOut, {TextTransparency = 1}):Play()
+        wait(2)
+        Blur:Destroy()
+        ScreenGui:Destroy()
+    end
 
-animateIntro()
+    animateIntro()
 end
 
 Script.Functions.Play()
