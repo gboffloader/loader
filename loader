@@ -262,6 +262,31 @@ Script.Functions.GetClosest = function()
     return Target
 end
 
+-- BulletSpread Hook
+local SpreadMod = getgenv().glock
+local old; old = hookfunction(math.random, function(...)
+    local args = {...}
+
+    if checkcaller() then
+        return old(...)
+    end
+
+    if (#args == 0) or 
+       (args[1] == -0.05 and args[2] == 0.05) or 
+       (args[1] == -0.1) or
+       (args[1] == -0.05) then
+
+        if SpreadMod.Start.BulletSpread.Enabled then
+            local spread = SpreadMod.Start.BulletSpread.Amount
+            return old(...) * (spread / 100)
+        else
+            return old(...)
+        end
+    end
+    
+    return old(...)
+end)
+
 -- BulletTp Metamethod Hook
 local originalHook
 local mt = getrawmetatable(game)
@@ -630,7 +655,7 @@ Script.Functions.rotateCamera = function()
         render = currentTime
         local rotationSpeed = Script.Table.Start.Misc.Spin.Acceleration * timeDelta
         local smoothRotation = rotationSpeed * Script.Table.Start.Misc.Spin.Smoothness
-        local directionVector = Script.Functions.getDirectionVector(Slimcript.Table.Start.Misc.Spin.Directions)
+        local directionVector = Script.Functions.getDirectionVector(Script.Table.Start.Misc.Spin.Directions)
         local rotation = CFrame.fromAxisAngle(directionVector, math.rad(smoothRotation))
         Camera.CFrame = Camera.CFrame * rotation
         rotate = rotate + rotationSpeed
