@@ -339,7 +339,7 @@ Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(fu
             if Script.Target and aimBotSettings.Notification then
                 game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "glock.cc",
-                    Text = "AimBot Target: " .. Script.Target.DisplayName,
+                    Text = "Silent Target: " .. Script.Target.DisplayName,
                     Duration = 0.001,
                 })
             end
@@ -354,7 +354,7 @@ Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(fu
             if Script.Target and bulletTpSettings.Notification then
                 game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "glock.cc",
-                    Text = "BulletTp Locked: " .. Script.Target.DisplayName,
+                    Text = "BulletTp Target: " .. Script.Target.DisplayName,
                     Duration = 0.001,
                 })
             end
