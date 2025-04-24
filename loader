@@ -29,7 +29,7 @@ check_env(getrenv())
 
 local Lua_Fetch_Connections = getconnections
 local Lua_Fetch_Upvalues = getupvalues
-local Lua_Hook = hookfunction 
+local Lua_Hook = hookfunction
 local Lua_Hook_Method = hookmetamethod
 local Lua_Unhook = restorefunction
 local Lua_Replace_Function = replaceclosure
@@ -93,7 +93,7 @@ function XVNP_L(CONNECTION)
                             args[1][4]:Disconnect()
                         end
                     end)
-                end 
+                end
             end
         end)
 
@@ -118,7 +118,7 @@ XVNP_CONNECTIONSNIFFER = Game_RunService.RenderStepped:Connect(function()
     end
 
     if tick() - XVNP_LASTUPDATE >= XVNP_UPDATEINTERVAL then
-        XVNP_LASTUPDATE = tick() 
+        XVNP_LASTUPDATE = tick()
         local OpenAc_Connections = Lua_Fetch_Connections(Game_LogService_MessageOut)
         for _, CONNECTION in OpenAc_Connections do
             if not table.find(Current_Connections, CONNECTION) then
@@ -133,7 +133,7 @@ end)
 local last_beat = 0
 Game_RunService.RenderStepped:Connect(function()
     if last_beat + 1 < tick() then
-        last_beat = tick() + 1 
+        last_beat = tick() + 1
         local what, are = auth_heart()
         if not are or not what then
             if good_check <= 0 then
@@ -159,11 +159,15 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Jairo = Players.LocalPlayer
+local Mouse = Jairo:GetMouse()
 
 local Script = {
     Table = getgenv().glock,
     Functions = {},
     Connections = {},
+    Utility = {
+        Gun = {}
+    }
 }
 
 for key, object in pairs(getgc(true)) do
@@ -208,14 +212,19 @@ local function Args()
     end
 end
 
-local Script = {
-    Table = getgenv().glock,
-    Target = nil,
-    MainEvent = nil,
-    Argument = Args(),
-    Functions = {},
-    Connections = {},
-}
+Script.Table.MainEvent = nil
+Script.Table.Argument = Args()
+
+task.spawn(function()
+    if string.find(identifyexecutor(), "Solara") then
+        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
+            if remote.Name == "MainEvent" then
+                Script.Table.MainEvent = remote
+                break
+            end
+        end
+    end
+end)
 
 local function getVelocity(Player)
     if string.find(identifyexecutor(), 'Solara') then
@@ -237,17 +246,6 @@ RunService.Heartbeat:Connect(function(deltaTime)
     end
 end)
 
-task.spawn(function()
-    if string.find(identifyexecutor(), "Solara") then
-        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
-            if remote.Name == "MainEvent" then
-                Script.MainEvent = remote
-                break
-            end
-        end
-    end
-end)
-
 Script.Functions.GetClosest = function()
     local Target
     local Closest = math.huge
@@ -264,53 +262,81 @@ Script.Functions.GetClosest = function()
     return Target
 end
 
-local hookmetamethod = hookmetamethod
+-- BulletTp Metamethod Hook
 local originalHook
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+originalHook = mt.__index
 
-local player = game.Players.LocalPlayer
-local Mouse = player:GetMouse()
-
-originalHook = hookmetamethod(game, "__index", function(self, index)
-    if not checkcaller() and self == Mouse and index == "Hit" then
-        local silentSettings = getgenv().glock and getgenv().glock.Start.Silent
-        if silentSettings and Script.Target and Script.Target.Character then
-            local targetPart = Script.Target.Character:FindFirstChild(silentSettings.TargetParts)
-            if targetPart then
-                local prediction = targetPart.Velocity * (silentSettings.Prediction or 1)
-                local offsets = getgenv().glock.Start.SilentOffsets
-                local position
-                if Script.Target.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-                    position = targetPart.CFrame + Vector3.new(0, offsets.Jump, 0)
-                else
-                    position = targetPart.CFrame + Vector3.new(0, offsets.Fall, 0)
+mt.__index = function(self, index)
+    if not checkcaller() and self == Mouse then
+        if (index == "Hit" or (index == "Target" and game.PlaceId == 2788229376)) then
+            -- Handle Silent Aim
+            local silentSettings = getgenv().glock.Start.Silent
+            if silentSettings.Active and Script.Target and Script.Target.Character then
+                local targetPart = Script.Target.Character:FindFirstChild(silentSettings.TargetParts)
+                if targetPart then
+                    local prediction = targetPart.Velocity * (silentSettings.Prediction or 1)
+                    local offsets = getgenv().glock.Start.SilentOffsets
+                    local position
+                    if Script.Target.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                        position = targetPart.CFrame + Vector3.new(0, offsets.Jump, 0)
+                    else
+                        position = targetPart.CFrame + Vector3.new(0, offsets.Fall, 0)
+                    end
+                    local predictedPosition = position + prediction
+                    if predictedPosition then
+                        return predictedPosition
+                    end
                 end
-                local predictedPosition = position + prediction
-                if predictedPosition then
-                    return predictedPosition
+            end
+            -- Handle BulletTp
+            local bulletTpSettings = getgenv().glock.Start.BulletTp
+            if bulletTpSettings.Active and Script.Target and Script.Target.Character then
+                local part = Script.Target.Character:FindFirstChild(bulletTpSettings.Part)
+                if part then
+                    return CFrame.new(part.Position)
                 end
             end
         end
     end
     return originalHook(self, index)
-end)
+end
 
 Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(function(Input, gameProcessedEvent)
     if gameProcessedEvent then return end
-    local keybind = getgenv().glock.Start.AimBot.Keybind
-    local aimBotActive = getgenv().glock.Start.AimBot.Active
-    if Input.KeyCode == Enum.KeyCode[keybind] and aimBotActive then
+    local aimBotSettings = getgenv().glock.Start.AimBot
+    local bulletTpSettings = getgenv().glock.Start.BulletTp
+    local keyPressed = Input.KeyCode
+
+    -- Handle AimBot Keybind
+    if keyPressed == Enum.KeyCode[aimBotSettings.Keybind] and aimBotSettings.Active then
         if Script.Target then
             Script.Target = nil
         else
             Script.Target = Script.Functions.GetClosest()
-            if Script.Target then
-                if getgenv().glock.Start.AimBot.Notification then
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "glock.cc",
-                        Text = "Target: " .. Script.Target.DisplayName,
-                        Duration = 0.001,
-                    })
-                end
+            if Script.Target and aimBotSettings.Notification then
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "glock.cc",
+                    Text = "AimBot Target: " .. Script.Target.DisplayName,
+                    Duration = 0.001,
+                })
+            end
+        end
+    end
+
+    -- Handle BulletTp Keybind
+    if keyPressed == Enum.KeyCode[bulletTpSettings.Keybind] and bulletTpSettings.Active then
+        if Script.Target then
+            Script.Target = nil
+        else
+            Script.Target = Script.Functions.GetClosest()
+            if Script.Target and bulletTpSettings.Notification then
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "glock.cc",
+                    Text = "BulletTp Locked: " .. Script.Target.DisplayName,
+                    Duration = 0.001,
+                })
             end
         end
     end
@@ -344,12 +370,11 @@ Script.Functions.rewrittenAimbot = function()
     if Script.Functions.isAirborne(Script.Target) then
         Smooth = AirSmoothness
     end
-    local runService = game:GetService("RunService")
     if getgenv().glock.Start.Misc.Resolver.Active and Parts then
         local lastPosition = Parts.Position
         task.wait()
         local currentPosition = Parts.Position
-        local velocity = (currentPosition - lastPosition) / runService.RenderStepped:Wait()
+        local velocity = (currentPosition - lastPosition) / RunService.RenderStepped:Wait()
         Parts.AssemblyLinearVelocity = velocity
         Parts.Velocity = velocity
     end
@@ -369,6 +394,77 @@ end
 RunService.RenderStepped:Connect(function()
     if Script.Target then
         Script.Functions.rewrittenAimbot()
+    end
+end)
+
+-- BulletTp Functions
+Script.Functions.CFrameToOffset = function(Origin, Target)
+    local ActualOrigin = Origin * CFrame.new(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, -1, 0)
+    return ActualOrigin:ToObjectSpace(Target):inverse()
+end
+
+Script.Functions.TeleportBullet = function(Tool)
+    local bulletTpSettings = getgenv().glock.Start.BulletTp
+    if not bulletTpSettings.Active or not Script.Target or not Script.Target.Character or not Script.Target.Character:FindFirstChild("HumanoidRootPart") then return end
+
+    local OriginPart = Jairo.Character and Jairo.Character:FindFirstChild("HumanoidRootPart")
+    local TargetPart = Script.Target.Character:FindFirstChild(bulletTpSettings.Part)
+
+    if OriginPart and TargetPart then
+        local OriginalGrip = Tool.Grip
+        Tool.Parent = Jairo.Backpack
+        Tool.Grip = Script.Functions.CFrameToOffset(Jairo.Character.RightHand.CFrame, TargetPart.CFrame)
+        Tool.Parent = Jairo.Character
+        RunService.RenderStepped:Wait()
+        Tool.Parent = Jairo.Backpack
+        Tool.Grip = OriginalGrip
+        Tool.Parent = Jairo.Character
+    end
+end
+
+Script.Functions.HandleCharacter = function(Character)
+    for _, Conn in ipairs({ "CharacterChildAdded", "ChildRemovingCharacter" }) do
+        if Script.Connections[Conn] then
+            Script.Connections[Conn]:Disconnect()
+        end
+    end
+
+    Script.Connections.CharacterChildAdded = Character.ChildAdded:Connect(function(Tool)
+        if Tool:IsA("Tool") then
+            for _, Conn in ipairs(getconnections(Tool:GetPropertyChangedSignal("Grip"))) do
+                Conn:Disable()
+            end
+
+            Script.Connections.ToolActivated = Tool.Activated:Connect(function()
+                if getgenv().glock.Start.BulletTp.Active then
+                    Script.Functions.TeleportBullet(Tool)
+                end
+            end)
+        end
+    end)
+
+    Script.Connections.ChildRemovingCharacter = Character.ChildRemoved:Connect(function()
+        Script.Utility.Gun.Tool = nil
+        if Script.Connections.ToolActivated then
+            Script.Connections.ToolActivated:Disconnect()
+        end
+    end)
+end
+
+local function SetupCharacter(Char)
+    Script.Functions.HandleCharacter(Char)
+end
+
+local CurrentCharacter = Jairo.Character or Jairo.CharacterAdded:Wait()
+SetupCharacter(CurrentCharacter)
+
+Jairo.CharacterAdded:Connect(SetupCharacter)
+
+Jairo.CharacterRemoving:Connect(function()
+    for _, Conn in ipairs({ "CharacterChildAdded", "ChildRemovingCharacter" }) do
+        if Script.Connections[Conn] then
+            Script.Connections[Conn]:Disconnect()
+        end
     end
 end)
 
@@ -482,13 +578,11 @@ Script.Functions.triggerBot = function()
         if JAIROUGH then
             local target = Mouse.Target
             if target and Script.Functions.getTarget(target) then
-                if player.Character then
-                    local tool = player.Character:FindFirstChildWhichIsA('Tool')
+                if Jairo.Character then
+                    local tool = Jairo.Character:FindFirstChildWhichIsA('Tool')
                     if tool and not Script.Functions.isToolBlacklisted(tool) then
-                        if tool then
-                            task.wait(Script.Table.Start.TriggerBot.Delay)
-                            tool:Activate()
-                        end
+                        task.wait(Script.Table.Start.TriggerBot.Delay)
+                        tool:Activate()
                     end
                 end
             end
@@ -510,13 +604,13 @@ local rotate = 0
 local render = 0
 
 Script.Functions.onKeyPressSpin = function(Input, GameProcessedEvent)
-    if Input.KeyCode == Enum.KeyCode[getgenv().glock.Start.Misc.Spin.Keybind] and not GameProcessedEvent then
+    if Input.KeyCode == Enum.KeyCode[Script.Table.Start.Misc.Spin.Keybind] and not GameProcessedEvent then
         click = not click
     end
 end
 
 Script.Functions.getDirectionVector = function(direction)
-    if direction == "North " then
+    if direction == "North" then
         return Vector3.new(0, 1, 0)
     elseif direction == "South" then
         return Vector3.new(0, -1, 0)
@@ -534,13 +628,13 @@ Script.Functions.rotateCamera = function()
         local currentTime = tick()
         local timeDelta = math.min(currentTime - render, 0.01)
         render = currentTime
-        local rotationSpeed = getgenv().glock.Start.Misc.Spin.Acceleration * timeDelta
-        local smoothRotation = rotationSpeed * getgenv().glock.Start.Misc.Spin.Smoothness
-        local directionVector = Script.Functions.getDirectionVector(getgenv().glock.Start.Misc.Spin.Directions)
+        local rotationSpeed = Script.Table.Start.Misc.Spin.Acceleration * timeDelta
+        local smoothRotation = rotationSpeed * Script.Table.Start.Misc.Spin.Smoothness
+        local directionVector = Script.Functions.getDirectionVector(Slimcript.Table.Start.Misc.Spin.Directions)
         local rotation = CFrame.fromAxisAngle(directionVector, math.rad(smoothRotation))
         Camera.CFrame = Camera.CFrame * rotation
         rotate = rotate + rotationSpeed
-        if rotate >= getgenv().glock.Start.Misc.Spin.Degrees then
+        if rotate >= Script.Table.Start.Misc.Spin.Degrees then
             click = false
             rotate = 0
         end
@@ -548,13 +642,13 @@ Script.Functions.rotateCamera = function()
 end
 
 local function recalculateVelocity()
-    local character = player.Character
+    local character = Jairo.Character
     if not character then return end
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return end
     local closestPlayer, closestDistance = nil, math.huge
-    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
-        if otherPlayer ~= player and otherPlayer.Character then
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= Jairo and otherPlayer.Character then
             local otherCharacter = otherPlayer.Character
             local otherRootPart = otherCharacter:FindFirstChild("HumanoidRootPart")
             if otherRootPart then
@@ -577,8 +671,8 @@ end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode[getgenv().glock.Start.Misc.Resolver.Keybind] then
-        local resolver = getgenv().glock.Start.Misc.Resolver
+    if input.KeyCode == Enum.KeyCode[Script.Table.Start.Misc.Resolver.Keybind] then
+        local resolver = Script.Table.Start.Misc.Resolver
         resolver.Active = not resolver.Active
         StarterGui:SetCore("SendNotification", {
             Title = resolver.Active and "Resolver ON" or "Resolver OFF",
@@ -624,7 +718,7 @@ end
 
 local function onCharacterAdded(character)
     character.ChildAdded:Connect(function(child)
-        if child:IsA("Tool") and automaticGuns[child.Name] and getgenv().glock.Start.RapidFire.Active then
+        if child:IsA("Tool") and automaticGuns[child.Name] and Script.Table.Start.RapidFire.Active then
             rapidfire(child)
         end
     end)
@@ -632,30 +726,31 @@ end
 
 Script.Functions.onRapidFireToggle = function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode[getgenv().glock.Start.RapidFire.Keybind] then
-        getgenv().glock.Start.RapidFire.Active = not getgenv().glock.Start.RapidFire.Active
-        if getgenv().glock.Start.RapidFire.Notification then
+    if input.KeyCode == Enum.KeyCode[Script.Table.Start.RapidFire.Keybind] then
+        Script.Table.Start.RapidFire.Active = not Script.Table.Start.RapidFire.Active
+        if Script.Table.Start.RapidFire.Notification then
             StarterGui:SetCore("SendNotification", {
                 Title = "glock.cc",
-                Text = "RapidFire " .. (getgenv().glock.Start.RapidFire.Active and "Enabled" or "Disabled"),
+                Text = "RapidFire " .. (Script.Table.Start.RapidFire.Active and "Enabled" or "Disabled"),
                 Duration = 2,
             })
         end
-        if getgenv().glock.Start.RapidFire.Active and player.Character then
-            local tool = player.Character:FindFirstChildWhichIsA("Tool")
+        if Script.Table.Start.RapidFire.Active and Jairo.Character then
+            local tool = Jairo.Character:FindFirstChildWhichIsA("Tool")
             if tool and automaticGuns[tool.Name] then
                 rapidfire(tool)
             end
         end
     end
 end
+
 UserInputService.InputBegan:Connect(Script.Functions.onRapidFireToggle)
-if player.Character then
-    onCharacterAdded(player.Character)
+if Jairo.Character then
+    onCharacterAdded(Jairo.Character)
 end
-player.CharacterAdded:Connect(onCharacterAdded)
-player.Character.ChildAdded:Connect(function(child)
-    if child:IsA("Tool") and automaticGuns[child.Name] and getgenv().glock.Start.RapidFire.Active then
+Jairo.CharacterAdded:Connect(onCharacterAdded)
+Jairo.Character.ChildAdded:Connect(function(child)
+    if child:IsA("Tool") and automaticGuns[child.Name] and Script.Table.Start.RapidFire.Active then
         rapidfire(child)
     end
 end)
@@ -664,7 +759,7 @@ local function applyAnimations(character)
     wait(0.1)
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
-    if getgenv().glock.Start.ZombieAnim.Active then
+    if Script.Table.Start.ZombieAnim.Active then
         local animateScript = character:WaitForChild("Animate")
         animateScript.Disabled = true
         for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
@@ -678,19 +773,19 @@ local function applyAnimations(character)
         animateScript.fall.FallAnim.AnimationId = "rbxassetid://10921241244"
         animateScript.Disabled = false
     end
-    if getgenv().glock.Start.MacroAnim.Active then
+    if Script.Table.Start.MacroAnim.Active then
         local animator = humanoid:FindFirstChildOfClass("Animator")
         if not animator then
             animator = Instance.new("Animator")
             animator.Parent = humanoid
         end
-        local animationId = getgenv().glock.Start.MacroAnim.AnimationId
+        local animationId = Script.Table.Start.MacroAnim.AnimationId
         local animation = Instance.new("Animation")
         animation.AnimationId = animationId
         local animationTrack = animator:LoadAnimation(animation)
         local isPlaying = false
         local function toggleAnimation()
-            if not getgenv().glock.Start.MacroAnim.Active then return end
+            if not Script.Table.Start.MacroAnim.Active then return end
             if isPlaying then
                 animationTrack:Stop()
                 isPlaying = false
@@ -706,7 +801,7 @@ local function applyAnimations(character)
             end
         end
         UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if not gameProcessed and input.KeyCode == Enum.KeyCode[getgenv().glock.Start.MacroAnim.Keybind] then
+            if not gameProcessed and input.KeyCode == Enum.KeyCode[Script.Table.Start.MacroAnim.Keybind] then
                 toggleAnimation()
             end
         end)
@@ -722,8 +817,6 @@ end)
 if Jairo.Character then
     applyAnimations(Jairo.Character)
 end
-
-local Client = Players.LocalPlayer
 
 Script.Functions.removeVisuals = function(Character)
     if not Character then return end
@@ -748,14 +841,14 @@ Script.Functions.resetCharacter = function(Character)
 end
 
 Script.Functions.handleCharacter = function(Character)
-    if not Character or not getgenv().glock.Start.HBE.Active then
+    if not Character or not Script.Table.Start.HBE.Active then
         Script.Functions.resetCharacter(Character)
         return
     end
     local HRP = Character:FindFirstChild("HumanoidRootPart") or Character:WaitForChild("HumanoidRootPart", 5)
     if not HRP then return end
 
-    local hbeSettings = getgenv().glock.Start.HBE
+    local hbeSettings = Script.Table.Start.HBE
     local size = math.clamp(hbeSettings.Size, 1, hbeSettings.MaxSize)
 
     HRP.Size = Vector3.new(size, size, size)
@@ -801,7 +894,7 @@ Script.Functions.handleCharacter = function(Character)
 end
 
 Script.Functions.handlePlayer = function(Player)
-    if Player == Client then return end
+    if Player == Jairo then return end
     Player.CharacterAdded:Connect(function(Character)
         Character:WaitForChild("HumanoidRootPart")
         Script.Functions.handleCharacter(Character)
@@ -818,30 +911,29 @@ end
 Players.PlayerAdded:Connect(Script.Functions.handlePlayer)
 
 RunService.Heartbeat:Connect(function()
-    if not getgenv().glock.Start.HBE.Active then
+    if not Script.Table.Start.HBE.Active then
         for _, Player in pairs(Players:GetPlayers()) do
-            if Player ~= Client and Player.Character then
+            if Player ~= Jairo and Player.Character then
                 Script.Functions.resetCharacter(Player.Character)
             end
         end
         return
     end
     for _, Player in pairs(Players:GetPlayers()) do
-        if Player ~= Client and Player.Character then
+        if Player ~= Jairo and Player.Character then
             Script.Functions.handleCharacter(Player.Character)
         end
     end
 end)
 
 RunService.RenderStepped:Connect(function()
-    if not getgenv().glock.Start.Movement.Enabled then return end
+    if not Script.Table.Start.Movement.Enabled then return end
 
-    local localPlayer = game.Players.LocalPlayer
-    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if Jairo.Character and Jairo.Character:FindFirstChild("HumanoidRootPart") then
+        local humanoid = Jairo.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            humanoid.WalkSpeed = getgenv().glock.Start.Movement.WalkSpeed
-            humanoid.JumpPower = getgenv().glock.Start.Movement.JumpPower
+            humanoid.WalkSpeed = Script.Table.Start.Movement.WalkSpeed
+            humanoid.JumpPower = Script.Table.Start.Movement.JumpPower
         end
     end
 end)
