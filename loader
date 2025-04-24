@@ -167,7 +167,8 @@ local Script = {
     Connections = {},
     Utility = {
         Gun = {}
-    }
+    },
+    ActiveFeature = nil -- Track which feature is active (Silent or BulletTp)
 }
 
 for key, object in pairs(getgc(true)) do
@@ -295,7 +296,9 @@ mt.__index = function(self, index)
     if not checkcaller() and self == Mouse then
         if (index == "Hit" or (index == "Target" and game.PlaceId == 2788229376)) then
             local silentSettings = getgenv().glock.Start.Silent
-            if silentSettings.Active and Script.Target and Script.Target.Character then
+            local bulletTpSettings = getgenv().glock.Start.BulletTp
+            -- Handle Silent Aim only if it is the active feature
+            if Script.ActiveFeature == "Silent" and silentSettings.Active and Script.Target and Script.Target.Character then
                 local targetPart = Script.Target.Character:FindFirstChild(silentSettings.TargetParts)
                 if targetPart then
                     local prediction = targetPart.Velocity * (silentSettings.Prediction or 1)
@@ -312,9 +315,8 @@ mt.__index = function(self, index)
                     end
                 end
             end
-
-            local bulletTpSettings = getgenv().glock.Start.BulletTp
-            if bulletTpSettings.Active and Script.Target and Script.Target.Character then
+            -- Handle BulletTp only if it is the active feature
+            if Script.ActiveFeature == "BulletTp" and bulletTpSettings.Active and Script.Target and Script.Target.Character then
                 local part = Script.Target.Character:FindFirstChild(bulletTpSettings.Part)
                 if part then
                     return CFrame.new(part.Position)
@@ -334,8 +336,10 @@ Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(fu
     if keyPressed == Enum.KeyCode[aimBotSettings.Keybind] and aimBotSettings.Active then
         if Script.Target then
             Script.Target = nil
+            Script.ActiveFeature = nil
         else
             Script.Target = Script.Functions.GetClosest()
+            Script.ActiveFeature = "Silent" -- Set Silent Aim as active feature
             if Script.Target and aimBotSettings.Notification then
                 game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "glock.cc",
@@ -349,8 +353,10 @@ Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(fu
     if keyPressed == Enum.KeyCode[bulletTpSettings.Keybind] and bulletTpSettings.Active then
         if Script.Target then
             Script.Target = nil
+            Script.ActiveFeature = nil
         else
             Script.Target = Script.Functions.GetClosest()
+            Script.ActiveFeature = "BulletTp" -- Set BulletTp as active feature
             if Script.Target and bulletTpSettings.Notification then
                 game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "glock.cc",
@@ -375,6 +381,7 @@ Script.Functions.rewrittenAimbot = function()
     local humanoid = Script.Target.Character:FindFirstChild("Humanoid")
     if humanoid and (humanoid.Health <= 1 or KOd) then
         Script.Target = nil
+        Script.ActiveFeature = nil
         return
     end
     local partName = tostring(getgenv().glock.Start.AimBot.TargetParts)
@@ -424,7 +431,8 @@ end
 
 Script.Functions.TeleportBullet = function(Tool)
     local bulletTpSettings = getgenv().glock.Start.BulletTp
-    if not bulletTpSettings.Active or not Script.Target or not Script.Target.Character or not Script.Target.Character:FindFirstChild("HumanoidRootPart") then return end
+    -- Only proceed if BulletTp is the active feature
+    if Script.ActiveFeature ~= "BulletTp" or not bulletTpSettings.Active or not Script.Target or not Script.Target.Character or not Script.Target.Character:FindFirstChild("HumanoidRootPart") then return end
 
     local OriginPart = Jairo.Character and Jairo.Character:FindFirstChild("HumanoidRootPart")
     local TargetPart = Script.Target.Character:FindFirstChild(bulletTpSettings.Part)
@@ -455,7 +463,7 @@ Script.Functions.HandleCharacter = function(Character)
             end
 
             Script.Connections.ToolActivated = Tool.Activated:Connect(function()
-                if getgenv().glock.Start.BulletTp.Active then
+                if getgenv().glock.Start.BulletTp.Active and Script.ActiveFeature == "BulletTp" then
                     Script.Functions.TeleportBullet(Tool)
                 end
             end)
@@ -681,7 +689,7 @@ local function recalculateVelocity()
     end
     if closestPlayer and closestPlayer.Character then
         local targetRootPart = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if targetRootPart then
+        if targetPart then
             local newVelocity = Vector3.new(0, 0, 0)
             targetRootPart.Velocity = newVelocity
         end
