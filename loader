@@ -262,7 +262,6 @@ Script.Functions.GetClosest = function()
     return Target
 end
 
--- BulletSpread Hook
 local SpreadMod = getgenv().glock
 local old; old = hookfunction(math.random, function(...)
     local args = {...}
@@ -287,7 +286,6 @@ local old; old = hookfunction(math.random, function(...)
     return old(...)
 end)
 
--- BulletTp Metamethod Hook
 local originalHook
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
@@ -296,7 +294,6 @@ originalHook = mt.__index
 mt.__index = function(self, index)
     if not checkcaller() and self == Mouse then
         if (index == "Hit" or (index == "Target" and game.PlaceId == 2788229376)) then
-            -- Handle Silent Aim
             local silentSettings = getgenv().glock.Start.Silent
             if silentSettings.Active and Script.Target and Script.Target.Character then
                 local targetPart = Script.Target.Character:FindFirstChild(silentSettings.TargetParts)
@@ -315,7 +312,7 @@ mt.__index = function(self, index)
                     end
                 end
             end
-            -- Handle BulletTp
+
             local bulletTpSettings = getgenv().glock.Start.BulletTp
             if bulletTpSettings.Active and Script.Target and Script.Target.Character then
                 local part = Script.Target.Character:FindFirstChild(bulletTpSettings.Part)
@@ -334,7 +331,6 @@ Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(fu
     local bulletTpSettings = getgenv().glock.Start.BulletTp
     local keyPressed = Input.KeyCode
 
-    -- Handle AimBot Keybind
     if keyPressed == Enum.KeyCode[aimBotSettings.Keybind] and aimBotSettings.Active then
         if Script.Target then
             Script.Target = nil
@@ -350,7 +346,6 @@ Script.Connections.InputBeganConnection = UserInputService.InputBegan:Connect(fu
         end
     end
 
-    -- Handle BulletTp Keybind
     if keyPressed == Enum.KeyCode[bulletTpSettings.Keybind] and bulletTpSettings.Active then
         if Script.Target then
             Script.Target = nil
@@ -422,7 +417,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- BulletTp Functions
 Script.Functions.CFrameToOffset = function(Origin, Target)
     local ActualOrigin = Origin * CFrame.new(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, -1, 0)
     return ActualOrigin:ToObjectSpace(Target):inverse()
